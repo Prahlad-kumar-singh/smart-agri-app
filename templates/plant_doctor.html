@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Doctor (Optional) - Smart Agri AI</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); margin: 0; padding: 10px; color: #1b2e1e; }
+        .container { max-width: 560px; margin: 4px auto; background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .nav-tabs { display: flex; gap: 5px; overflow-x: auto; background: #e8f5e9; padding: 5px; border-radius: 10px; margin-bottom: 12px; }
+        .nav-tabs a { flex: 1; white-space: nowrap; text-decoration: none; text-align: center; padding: 7px 8px; font-size: 11.5px; font-weight: 700; border-radius: 8px; color: #2e7d32; }
+        .nav-tabs a.active { background: #2e7d32; color: #fff; }
+        .sub-tabs { display: flex; gap: 6px; background: #f1f8e9; padding: 5px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #c5e1a5; }
+        .sub-tab-btn { flex: 1; padding: 8px 6px; border: none; border-radius: 8px; font-size: 11.5px; font-weight: 700; cursor: pointer; background: transparent; color: #1b5e20; }
+        .sub-tab-btn.active { background: #2e7d32; color: #fff; }
+        .header { text-align: center; border-bottom: 1.5px solid #e8f5e9; padding-bottom: 8px; margin-bottom: 12px; }
+        .header h1 { margin: 0; font-size: 19px; color: #1b5e20; }
+        .header p { margin: 3px 0 0; font-size: 12px; color: #4e6e52; }
+        .badge-opt { display: inline-block; background: #fff3e0; color: #e65100; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 12px; margin-bottom: 4px; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+        input, select { width: 100%; padding: 9px; border: 1.5px solid #cfd8dc; border-radius: 8px; font-size: 13px; background: #fafafa; }
+        .btn { width: 100%; padding: 12px; background: #2e7d32; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+        .diag-card { margin-top: 14px; padding: 14px; border-radius: 12px; background: #f1f8e9; border-left: 5px solid #ef6c00; }
+        .diag-card h3 { margin: 4px 0; color: #bf360c; font-size: 16px; }
+        .preview-img { width: 100%; max-height: 170px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; border: 1px solid #c8e6c9; }
+        .remedy-box { background: #fff; padding: 9px; border-radius: 8px; font-size: 12px; line-height: 1.45; border: 1px dashed #66bb6a; margin-top: 6px; }
+
+        /* Random Patti / Lakdi Sub-Section Styles */
+        .random-box { background: #f9fbe7; border: 1.5px solid #c5e1a5; border-radius: 12px; padding: 13px; }
+        .random-title { font-size: 15px; font-weight: 800; color: #1b5e20; margin-bottom: 4px; }
+        .random-sub { font-size: 11.5px; color: #3b563e; margin-bottom: 11px; line-height: 1.4; }
+        .random-preview-card { display: none; margin-bottom: 10px; text-align: center; background: #fff; padding: 8px; border-radius: 10px; border: 1px solid #dcedc8; }
+        .random-preview-card img { max-width: 100%; max-height: 185px; border-radius: 8px; object-fit: contain; }
+        .random-meta { font-size: 11px; color: #2e7d32; margin-top: 6px; font-weight: 600; }
+        .random-result { display: none; margin-top: 12px; background: #fff; border-left: 4px solid #2e7d32; border-radius: 10px; padding: 12px; font-size: 12px; line-height: 1.5; }
+        .impact-pill { padding: 8px; border-radius: 7px; margin: 7px 0; font-weight: 600; font-size: 12px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <nav class="nav-tabs">
+        <a href="/">🌱 Crop & Map</a>
+        <a href="/calculator">🧪 Khaad Calc</a>
+        <a href="/records">📋 History</a>
+        <a href="/guide">🌦️ Flood Guide</a>
+        <a href="/plant-doctor" class="active">🩺 Doctor</a>
+    </nav>
+
+    <div class="header">
+        <span class="badge-opt">OPTIONAL MODULE</span>
+        <h1>🩺 Paudha Health & Upchar AI</h1>
+        <p>Patte, Tana, Jad ya Faliyon ki photo se condition aur upchar jaanein</p>
+    </div>
+
+    <!-- Doctor Sub-Section Switcher -->
+    <div class="sub-tabs">
+        <button type="button" id="subCropBtn" class="sub-tab-btn active" onclick="switchDoctorSubTab('crop')">🌱 Fasal / Paudha Doctor</button>
+        <button type="button" id="subRandomBtn" class="sub-tab-btn" onclick="switchDoctorSubTab('random')">🍃 Random Patti / Lakdi Check</button>
+    </div>
+
+    <!-- SUB-SECTION 1: EXISTING FASAL / PAUDHA DOCTOR -->
+    <div id="cropDoctorSubSection">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Paudhe Ka Kaunsa Hissa Hai?</label>
+                <select name="plant_part" required>
+                    <option value="Leaves (Patte)">🍃 Leaves (Patte)</option>
+                    <option value="Stem (Tana)">🌿 Stem (Tana)</option>
+                    <option value="Roots (Jad)">🌱 Roots (Jad)</option>
+                    <option value="Pods / Fruits (Faliyan)">🫛 Pods / Fruits (Faliyan)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fasal Ka Naam (Optional)</label>
+                <input type="text" name="crop_name" placeholder="e.g. Gehu, Makka, Karela, Aam">
+            </div>
+            <div class="form-group">
+                <label>Photo Upload Karein</label>
+                <input type="file" name="plant_image" accept="image/*" capture="environment" required>
+            </div>
+            <div class="form-group">
+                <label>Kya Dikkat Dikh Rahi Hai? (Optional)</label>
+                <input type="text" name="symptom_note" placeholder="e.g. Patte peele, dhabbe, jad galna">
+            </div>
+            <button type="submit" class="btn">Analyze Plant & Get Upchar 🔍</button>
+        </form>
+
+        {% if diagnosis %}
+        <div class="diag-card">
+            {% if uploaded_img_url %}
+            <img src="{{ uploaded_img_url }}" alt="Uploaded Plant Part" class="preview-img">
+            {% endif %}
+            <div style="font-size: 11.5px; color: #555;">
+                <b>Part:</b> {{ plant_part }} {% if crop_name %}({{ crop_name }}){% endif %} | <b>Severity:</b> {{ diagnosis.severity }}
+            </div>
+            <h3>⚠️ {{ diagnosis.status }}</h3>
+            <div style="font-size: 11px; color: #2e7d32; margin-bottom: 6px;">{{ diagnosis.stats }}</div>
+            <div class="remedy-box">
+                <b>💊 Upchar & Sudhar:</b><br>
+                {{ diagnosis.remedy }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- SUB-SECTION 2: RANDOM PATTI / LAKDI / SPECIMEN CHECK -->
+    <div id="randomSpecimenSubSection" style="display: none;">
+        <div class="random-box">
+            <div class="random-title">🍃 Random Patti / Lakdi & Upchar Check</div>
+            <div class="random-sub">
+                Isme kisi fasal ka naam zaroori nahi hai—koi random patti, lakdi/tahni, chhal ya anjaan hisse ki photo daalein, jaanein yeh kya hai, kiske liye use hota hai, labhdayak ya hanikarak hai, aur bimari ho toh kaise thik karein.
+            </div>
+
+            <div class="form-group">
+                <label for="specimenTypeSelect">Specimen Type (Kya Dikh Raha Hai?)</label>
+                <select id="specimenTypeSelect">
+                    <option value="leaf">🍃 Random Patti (Leaf)</option>
+                    <option value="wood">🪵 Lakdi / Tahni (Wood / Twig)</option>
+                    <option value="bark">🌳 Ped Ki Chhal (Bark)</option>
+                    <option value="unknown">❓ Unknown Specimen (Koi Anjaan Cheez)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="specimenPhotoInput">Photo Upload Karein</label>
+                <input type="file" id="specimenPhotoInput" accept="image/*" capture="environment" onchange="previewSpecimenImage(event)">
+            </div>
+
+            <div id="specimenPreviewCard" class="random-preview-card">
+                <img id="specimenPreviewImg" src="" alt="Specimen Preview">
+                <div id="specimenMetaText" class="random-meta"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="specimenIssueSelect">Kya Dikkat Dikh Rahi Hai?</label>
+                <select id="specimenIssueSelect">
+                    <option value="spots">⚫ Dhabbe / Kaale-Bhure Spots</option>
+                    <option value="rot_dry">🥀 Sukhna / Galna / Bhura-Peela Padna</option>
+                    <option value="fungus">⚪ Safed Powder / Phaphoondi (Fungus)</option>
+                    <option value="pests">🐛 Keeda / Kata Hua Hissa (Pest Damage)</option>
+                    <option value="healthy">✅ Koi Khas Dikkat Nahi (Sirf Detail Chahiye)</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn" onclick="checkRandomSpecimen()">🔍 Check Detail & Upchar</button>
+
+            <div id="specimenResultBox" class="random-result"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchDoctorSubTab(subTab) {
+        const cropSec = document.getElementById('cropDoctorSubSection');
+        const randSec = document.getElementById('randomSpecimenSubSection');
+        const cropBtn = document.getElementById('subCropBtn');
+        const randBtn = document.getElementById('subRandomBtn');
+
+        if (subTab === 'random') {
+            cropSec.style.display = 'none';
+            randSec.style.display = 'block';
+            cropBtn.classList.remove('active');
+            randBtn.classList.add('active');
+        } else {
+            randSec.style.display = 'none';
+            cropSec.style.display = 'block';
+            randBtn.classList.remove('active');
+            cropBtn.classList.add('active');
+        }
+    }
+
+    function previewSpecimenImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.getElementById('specimenPreviewImg');
+            img.src = e.target.result;
+            img.onload = function() {
+                document.getElementById('specimenPreviewCard').style.display = 'block';
+                document.getElementById('specimenMetaText').innerText =
+                    `File: ${file.name} | Size: ${(file.size / 1024).toFixed(1)} KB | Resolution: ${img.naturalWidth}×${img.naturalHeight}px`;
+            };
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function checkRandomSpecimen() {
+        const specKey = document.getElementById('specimenTypeSelect').value;
+        const issueKey = document.getElementById('specimenIssueSelect').value;
+        const fileInput = document.getElementById('specimenPhotoInput');
+        const resultBox = document.getElementById('specimenResultBox');
+
+        const profiles = {
+            leaf: {
+                title: "🍃 Random Patti (Leaf)",
+                whatIsIt: "Yeh kisi paudhe, jhar (shrub), ya ped ki patti hai jo dhoop aur hawa se paudhe ke liye bhojan (photosynthesis) banati hai.",
+                usedFor: "Iska use paudhe ki sehat/poshan samajhne, khaad/compost banane, ya kisi vishesh ped/paudhe ki pehchan karne mein hota hai."
+            },
+            wood: {
+                title: "🪵 Lakdi / Tahni (Wood / Twig)",
+                whatIsIt: "Yeh kisi ped ya jhar ki shakha (tahni) ya lakdi ka hissa hai jo paudhe ko sahara deta hai aur paani/poshan aage pahunchata hai.",
+                usedFor: "Iska use pruning/vikas dekhne, lakdi/eendhan/fencing, ya kheti/bagiche ke kaam mein aane wale hisse ke roop mein hota hai."
+            },
+            bark: {
+                title: "🌳 Ped Ki Chhal (Bark)",
+                whatIsIt: "Yeh tane ya moti shakha ki baahari suraksha parat (bark) hai jo andar ke jeevit hisson ko dhoop, sardi aur baahari chot se bachati hai.",
+                usedFor: "Iska use ped ki sehat jaanchne, gumming/rot/fungus dekhne, ya pehchan ke baad upyogi sandarbh mein hota hai."
+            },
+            unknown: {
+                title: "❓ Unknown Specimen",
+                whatIsIt: "Yeh ek aisa specimen hai jiska prakar abhi nishchit nahi hai—yeh patti, sukhi/hari lakdi, chhal, ya koi anya cheez ho sakti hai.",
+                usedFor: "Pehle saaf roshni mein iska rang, aakar aur banawat dekh kar iski sahi pehchan ki jaati hai, tabhi upyog ya hatane ka faisla hota hai."
+            }
+        };
+
+        const issues = {
+            spots: {
+                label: "Dhabbe / Kaale-Bhure Spots",
+                impact: "⚠️ Hanikarak (Agar Bimari/Fungus Hai): Dhabbe wale hisse se sankraman aas-paas ki swasth pattiyon ya paudhon mein fail sakta hai.",
+                bg: "#fff3e0",
+                border: "#ef6c00",
+                detail: "Patti ya tahni par gol/aniamit bhure ya kaale dhabbe aksar fungal ya bacterial spot ki nishani hote hain.",
+                remedy: [
+                    "Sankramit patti ya chhoti tahni ko kaat kar khet/bagiche se bahar alag destroy karein.",
+                    "Zaroorat ho toh krishi salah ke mutabik Copper oxychloride ya Mancozeb based spray ka upyog karein.",
+                    "Upar se bar-bar paani chhidkne ke bajay mitti/jad ke paas nami ka dhyan rakhein."
+                ]
+            },
+            rot_dry: {
+                label: "Sukhna / Galna / Bhura-Peela Padna",
+                impact: "⚠️ Hanikarak (Risk Of Spread / Weak Growth): Sukhne ya galne wali tahni/patti kamzori, jal-bhav, ya rot/wilt ki sanket ho sakti hai.",
+                bg: "#ffebee",
+                border: "#c62828",
+                detail: "Lakdi ya patti ka sukhna ya galna jad mein jal-bhav (waterlogging), wilt, ya rot ke kaaran ho sakta hai.",
+                remedy: [
+                    "Agar lakdi/tahni andar se bhuri ya sukhi lag rahi hai, toh swasth hisse se 1–2 inch neeche tak prun (kaat) karein.",
+                    "Jal-nikasi (drainage) sudharein taaki jaddon ke aas-paas paani na ruke.",
+                    "Kaate gaye hisse par fungicide paste ya saaf pruning seal lagayein."
+                ]
+            },
+            fungus: {
+                label: "Safed Powder / Phaphoondi (Fungus)",
+                impact: "⚠️ Hanikarak (High Spread Risk): Phaphoondi hawa ya nami se tezi se fail kar paudhe ki prakash-sansleshit shamta ghata sakti hai.",
+                bg: "#fff3e0",
+                border: "#ef6c00",
+                detail: "Safed ya halke bhure powder jaisi parat aksar nam (humid) aur kam hawa wale mahol mein fungus se hoti hai.",
+                remedy: [
+                    "Ghana paudha/tahni ho toh hawa aur dhoop aane ke liye halki chhantai (pruning) karein.",
+                    "Sulphur ya recommended fungicide spray ka upyog karein (subah ya shaam ke waqt, tezz dhoop mein nahi)."
+                ]
+            },
+            pests: {
+                label: "Keeda / Kata Hua Hissa (Pest Damage)",
+                impact: "⚠️ Hanikarak (Pest Risk): Keede aage chal kar doosri pattiyon, phoolon ya fasal ko nuksan pahuncha sakte hain.",
+                bg: "#ffebee",
+                border: "#c62828",
+                detail: "Kati hui patti ya chhed/surang (bore) ke nishan caterpillars, beetles, ya stem/twig borers ki wajah se ho sakte hain.",
+                remedy: [
+                    "Dikhne wale keede ya unke ande/larvae wale hisse ko hata kar alag karein.",
+                    "Neem oil (azadirachtin) ya krishi visheshagya ke anusaar uchit bio/chemical upchar apnayein."
+                ]
+            },
+            healthy: {
+                label: "Koi Khas Dikkat Nahi (Normal Observation)",
+                impact: "✅ Labhdayak / Normal (Agar Fasal/Ped Ka Sahi Hissa Hai): Koi spasht bimari nahi dikh rahi; compost, shade, ya normal growth ke roop mein upyogi ho sakta hai.",
+                bg: "#e8f5e9",
+                border: "#2e7d32",
+                detail: "Aapne bina badi bimari ke lakshan ke check chuna hai. Yeh ek normal observation hai.",
+                remedy: [
+                    "Agar aap kisi khaas ped/poudhe ki pakki pehchan chahte hain, toh patti, phool/phal, aur lakdi/chhal teeno ki saaf photo lein.",
+                    "Kisi anjaan/wild patti ya lakdi ko bina pakki pehchan ke khane ya aushadhi/chara ke roop mein seedha use na karein."
+                ]
+            }
+        };
+
+        const p = profiles[specKey];
+        const r = issues[issueKey];
+        const fileInfo = fileInput.files.length > 0
+            ? `<b>Photo:</b> ${fileInput.files[0].name}`
+            : `<b>Photo:</b> Koi file select nahi ki gayi (manual symptom check).`;
+
+        resultBox.style.display = 'block';
+        resultBox.innerHTML = `
+            <div style="font-weight:800; color:#1b5e20; font-size:14px; margin-bottom:4px;">📋 ${p.title} — ${r.label}</div>
+            <div style="font-size:11px; color:#555; margin-bottom:8px;">${fileInfo}</div>
+
+            <div style="margin-bottom:6px;"><b>1. Yeh Kya Hai:</b> ${p.whatIsIt}</div>
+            <div style="margin-bottom:6px;"><b>2. Kiske Liye Use Hota Hai:</b> ${p.usedFor}</div>
+
+            <div class="impact-pill" style="background:${r.bg}; border-left:3px solid ${r.border};">
+                <b>3. Labhdayak Ya Hanikarak:</b> ${r.impact}
+            </div>
+
+            <div style="margin-bottom:6px;"><b>4. Dikkat Ki Jaankari:</b> ${r.detail}</div>
+            <div style="font-weight:700; color:#1b5e20; margin-bottom:4px;">🩺 Kaise Thik Karein (Upchar):</div>
+            <ul style="margin:0; padding-left:18px;">
+                ${r.remedy.map(item => `<li style="margin-bottom:4px;">${item}</li>`).join('')}
+            </ul>
+        `;
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+flask
+gunicorn
+pillow
+werkzeug
+numpy
+pandas
+scikit-learn
