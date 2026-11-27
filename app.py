@@ -227,6 +227,30 @@ def get_local_advisory(flood_status, soil_type, crop_name=""):
     return f"{base_tip} {crop_tip}"
 
 
+def validate_plot_combination(village, flood_status, soil_type):
+    v_lower = (village or "").strip().lower()
+    f_lower = (flood_status or "").strip().lower()
+    s_lower = (soil_type or "").strip().lower()
+
+    is_non_flooded = "non-flooded" in f_lower
+    is_gaad = "gaad" in s_lower or "new alluvial silt" in s_lower
+    is_koshi = "koshi" in v_lower or "koshi" in f_lower
+
+    if is_non_flooded and is_gaad:
+        return (
+            "Galat Combination: 'Gaad (New Alluvial Silt)' nayi baadh/nadi ki mitti hoti hai, "
+            "isliye ise 'Non-Flooded' zameen ke saath nahi chuna ja sakta. Kripya Flood Status ya Soil Type badlein."
+        )
+
+    if is_non_flooded and is_koshi:
+        return (
+            "Galat Combination: Koshi belt / Srikhandi kshetra mein 'Non-Flooded' zameen hona "
+            "zameeni haqeeqat se mel nahi khata. Kripya sahi Flood Status chunein."
+        )
+
+    return None
+
+
 def analyze_plant_health(plant_part, symptom_note, image_path):
     yellow_ratio = brown_ratio = green_ratio = 0.0
     try:
@@ -293,6 +317,295 @@ def analyze_plant_health(plant_part, symptom_note, image_path):
     }
 
 
+CROP_CALC_PROFILES = {
+    "Wheat (Gehu)": {
+        "urea": 110.0,
+        "dap": 55.0,
+        "mop": 35.0,
+        "seed": 45.0,
+        "default_season": "Rabi",
+        "seasons": {
+            "Rabi": {
+                "irrigation_count": "4 se 6 baar (mitti aur mitti ki nami ke hisaab se)",
+                "irrigation_interval": "Har 20–25 din ke antral par",
+                "basal_note": "Rabi buwai (Nov–Dec) ke samay poora DAP + MOP aur lagbhag 1/3 Urea mitti mein milayein.",
+                "schedule": [
+                    {
+                        "stage": "1st Paani (CRI / Taj Jad Avastha — Buwai ke 20–25 din baad)",
+                        "interval": "20–25 din par",
+                        "fertilizer": "Lagbhag 1/3 Urea top-dressing (paani ke baad halka watt aane par chhidkav karein)."
+                    },
+                    {
+                        "stage": "2nd Paani (Kalla Futav / Tillering — 40–45 din baad)",
+                        "interval": "~20 din ke antral par",
+                        "fertilizer": "Bacha hua lagbhag 1/3 Urea (zaroorat ho toh Zinc Sulphate saath mila sakte hain)."
+                    },
+                    {
+                        "stage": "3rd Paani (Ganth Banne / Jointing — 60–65 din baad)",
+                        "interval": "~20 din ke antral par",
+                        "fertilizer": "Is sinchai mein alag se thos khaad zaroori nahi; mitti mein nami barkarar rakhein."
+                    },
+                    {
+                        "stage": "4th–5th Paani (Balii Nikalne / Booting & Daana Bharav — 80–105 din baad)",
+                        "interval": "18–22 din ke antral par",
+                        "fertilizer": "Daane achhe bharne ke liye zaroorat padne par 1–2% NPK (19:19:19) ya MOP ka halka spray karein."
+                    }
+                ],
+                "land_note": "Rabi mein CRI (21 din) aur balii bharav ke samay paani ki kami bilkul na hone dein."
+            },
+            "Kharif": {
+                "irrigation_count": "Aam taur par 0–2 baar (sirf barish ka lamba gap hone par)",
+                "irrigation_interval": "Barish na hone par 15–20 din ke antral par nami jaanch kar",
+                "basal_note": "Kharif mausam mein Gehu ki buwai aam taur par nahi ki jaati; zyada barish aur tapman se fasal ko nuksan ho sakta hai.",
+                "schedule": [
+                    {
+                        "stage": "Barish / Nami Jaanch (Buwai ke 20–25 din baad)",
+                        "interval": "15–25 din par (mausam ke hisaab se)",
+                        "fertilizer": "Khet mein paani jama na hone dein; zaroorat ho toh 1/3 Urea tabhi dein jab nikaasi (drainage) theek ho."
+                    },
+                    {
+                        "stage": "Madhyam Avastha (40–45 din baad)",
+                        "interval": "15–20 din ke antral par",
+                        "fertilizer": "Bacha hua 1/3 Urea (agar fasal khadi aur swasth ho toh)."
+                    }
+                ],
+                "land_note": "Gehu mukhya roop se Rabi ki fasal hai—Kharif mein khet ki jal-nikasi sabse zaroori hai."
+            }
+        }
+    },
+    "Maize (Makka)": {
+        "urea": 130.0,
+        "dap": 65.0,
+        "mop": 40.0,
+        "seed": 8.0,
+        "default_season": "Kharif",
+        "seasons": {
+            "Kharif": {
+                "irrigation_count": "6 baar (local kheti aur mitti ki nami/barish ke hisaab se)",
+                "irrigation_interval": "Lagbhag har 12–15 din ke antral par (nami jaanch kar)",
+                "basal_note": "Kharif buwai (June–July) ke samay poora DAP + MOP aur lagbhag 1/4 Urea line mein/mitti mein dein.",
+                "schedule": [
+                    {
+                        "stage": "1st Paani (Buwai ke ~12–15 din baad)",
+                        "interval": "12–15 din par",
+                        "fertilizer": "Halka paani/nami; abhi thos khaad nahi, ankur/jaddon ko set hone dein."
+                    },
+                    {
+                        "stage": "2nd Paani (Buwai ke ~25–28 din baad)",
+                        "interval": "~12–14 din ke antral par",
+                        "fertilizer": "1st Urea top-dressing (lagbhag 1/3 Urea paani ke baad halka watt aane par)."
+                    },
+                    {
+                        "stage": "3rd Paani (Buwai ke ~38–42 din baad — Ghutna / Earthing Stage)",
+                        "interval": "~12–15 din ke antral par",
+                        "fertilizer": "2nd Urea top-dressing (bacha hua lagbhag 1/3 Urea + mitti chadhana/earthing up karein)."
+                    },
+                    {
+                        "stage": "4th Paani (Buwai ke ~52–56 din baad)",
+                        "interval": "~14 din ke antral par",
+                        "fertilizer": "Bacha hua thoda Urea (agar pehle poora na diya ho) ya foliar micronutrient/NPK spray."
+                    },
+                    {
+                        "stage": "5th Paani (Buwai ke ~65–70 din baad — Tasseling / Bhutta Nikalne par)",
+                        "interval": "~13–15 din ke antral par",
+                        "fertilizer": "Khaad nahi; bhutta nikalte waqt khet mein nami banaye rakhein (khada paani na rukne dein)."
+                    },
+                    {
+                        "stage": "6th Paani (Buwai ke ~80–85 din baad — Daana Bharav Avastha)",
+                        "interval": "~15 din ke antral par",
+                        "fertilizer": "Khaad nahi; daane achhe bharne ke liye aakhiri halka paani (jal-bharav na hone dein)."
+                    }
+                ],
+                "land_note": "6 sinchai ke dauran har baar paani nikalne/drainage ka dhyan rakhein taaki khet mein paani jama na ho."
+            },
+            "Rabi": {
+                "irrigation_count": "5 se 6 baar (sardi mein niyamit sinchai)",
+                "irrigation_interval": "Har 16–22 din ke antral par",
+                "basal_note": "Rabi buwai (Oct–Nov) ke samay poora DAP + MOP aur lagbhag 1/4 Urea mitti mein milayein.",
+                "schedule": [
+                    {
+                        "stage": "1st Paani (Buwai ke ~18–20 din baad)",
+                        "interval": "18–20 din par",
+                        "fertilizer": "Halka paani; zaroorat ho toh shuruati badhvaar ke liye halka Urea."
+                    },
+                    {
+                        "stage": "2nd Paani (Buwai ke ~35–40 din baad)",
+                        "interval": "~18 din ke antral par",
+                        "fertilizer": "1st Urea top-dressing (lagbhag 1/3 Urea watt aane par)."
+                    },
+                    {
+                        "stage": "3rd Paani (Buwai ke ~52–58 din baad — Earthing Stage)",
+                        "interval": "~18 din ke antral par",
+                        "fertilizer": "2nd Urea top-dressing (bacha hua lagbhag 1/3 Urea + mitti chadhana karein)."
+                    },
+                    {
+                        "stage": "4th–6th Paani (Tasseling, Silking & Daana Bharav — ~70 se 105 din tak)",
+                        "interval": "Har 16–22 din ke antral par",
+                        "fertilizer": "Khaad nahi; bhutta aur daana bharne ke dauran nami ki kami na hone dein."
+                    }
+                ],
+                "land_note": "Rabi mein paani ka interval mausam aur thand ke hisaab se adjust karein."
+            }
+        }
+    },
+    "Rice (Dhan)": {
+        "urea": 100.0,
+        "dap": 50.0,
+        "mop": 35.0,
+        "seed": 15.0,
+        "default_season": "Kharif",
+        "seasons": {
+            "Kharif": {
+                "irrigation_count": "Barish ke alawa 4–7 baar (ropai ke baad khet mein nami/halka paani)",
+                "irrigation_interval": "Paani sokhne ke 2–3 din baad (lagbhag har 7–12 din par, barish na hone par)",
+                "basal_note": "Kharif ropai (June–July) ke samay DAP + MOP aur lagbhag 1/3 Urea khet mein milayein.",
+                "schedule": [
+                    {
+                        "stage": "1st Paani / Nami (Ropai ke 18–21 din baad)",
+                        "interval": "18–21 din par",
+                        "fertilizer": "Lagbhag 1/3 Urea + Zinc Sulphate (agar ropai ke waqt na diya ho toh)."
+                    },
+                    {
+                        "stage": "2nd Paani / Nami (Kalla Nikalte Samay / Tillering — 35–42 din baad)",
+                        "interval": "15–20 din ke antral par",
+                        "fertilizer": "Bacha hua lagbhag 1/3 Urea (khet se khada paani nikaal kar chhidkav karein, 24 ghante baad paani bharein)."
+                    },
+                    {
+                        "stage": "3rd Paani onwards (Panicle Initiation & Daana Bharav — 55–85 din baad)",
+                        "interval": "7–12 din ke antral par nami",
+                        "fertilizer": "Khaad nahi; daana bharne tak khet mein lagbhag 1.5–2 inch nami/paani banayein rakhein."
+                    }
+                ],
+                "land_note": "Dhan mukhya roop se Kharif fasal hai—beech-beech mein halka paani aur nikaasi kalle achhe banati hai."
+            },
+            "Rabi": {
+                "irrigation_count": "8 se 12 baar (garmi/sukhe mausam ke kaaran zyada sinchai)",
+                "irrigation_interval": "Har 5–9 din ke antral par (mitti ki nami ke hisaab se)",
+                "basal_note": "Ropai ke samay DAP + MOP aur lagbhag 1/3 Urea mitti mein milayein.",
+                "schedule": [
+                    {
+                        "stage": "1st Paani (Ropai ke 15–20 din baad)",
+                        "interval": "15–20 din par",
+                        "fertilizer": "Lagbhag 1/3 Urea + Zinc Sulphate."
+                    },
+                    {
+                        "stage": "2nd Paani (Tillering Stage — 30–38 din baad)",
+                        "interval": "12–18 din ke antral par",
+                        "fertilizer": "Bacha hua lagbhag 1/3 Urea (paani nikaal kar chhidkav, phir 24 ghante baad halka paani)."
+                    },
+                    {
+                        "stage": "3rd Paani onwards (Flowering & Grain Filling)",
+                        "interval": "5–9 din ke antral par",
+                        "fertilizer": "Khaad nahi; paani ki kami na hone dein (paani ki lagat zyada aati hai)."
+                    }
+                ],
+                "land_note": "Rabi/Garma Dhan mein paani aur bijli/diesel ki lagat zyada aati hai—paani ki uplabdhata pakki ho tabhi karein."
+            }
+        }
+    },
+    "Mustard (Sarson)": {
+        "urea": 65.0,
+        "dap": 45.0,
+        "mop": 25.0,
+        "seed": 2.5,
+        "default_season": "Rabi",
+        "seasons": {
+            "Rabi": {
+                "irrigation_count": "2 se 3 baar (mitti ki nami ke hisaab se)",
+                "irrigation_interval": "Har 25–35 din ke antral par",
+                "basal_note": "Rabi buwai (Oct–Nov) ke samay poora DAP + MOP (aur sulfur/SSP ho toh) + aadha Urea mitti mein dein.",
+                "schedule": [
+                    {
+                        "stage": "1st Paani (Shakha Nikalte Samay / Branching — Buwai ke 25–30 din baad)",
+                        "interval": "25–30 din par",
+                        "fertilizer": "Bacha hua 1/2 Urea top-dressing (paani ke baad halka watt aane par)."
+                    },
+                    {
+                        "stage": "2nd Paani (Phalli Banne ki Avastha / Pod Formation — 55–65 din baad)",
+                        "interval": "25–35 din ke antral par",
+                        "fertilizer": "Koi khaad nahi; halka paani dein aur khet mein paani jama na hone dein."
+                    }
+                ],
+                "land_note": "Sarson mukhya roop se Rabi ki fasal hai—phool/phalli ke waqt halka paani aur jal-nikasi zaroori hai."
+            },
+            "Kharif": {
+                "irrigation_count": "1 se 2 baar (sirf barish ka lamba gap hone par)",
+                "irrigation_interval": "20–30 din ke antral par (nami dekh kar)",
+                "basal_note": "Buwai ke samay DAP + MOP + aadha Urea dein; khet mein paani rukne na dein.",
+                "schedule": [
+                    {
+                        "stage": "1st Nami / Paani (Buwai ke 25–30 din baad, sukha ho toh)",
+                        "interval": "25–30 din par",
+                        "fertilizer": "Bacha hua 1/2 Urea (khet mein paani khada na ho tabhi dein)."
+                    },
+                    {
+                        "stage": "2nd Nami / Paani (55–65 din baad)",
+                        "interval": "25–30 din ke antral par",
+                        "fertilizer": "Khaad nahi; teeno-dono aur fungal rog se bachav ka dhyan rakhein."
+                    }
+                ],
+                "land_note": "Sarson aam taur par Rabi mein hoti hai—Kharif mein zyada nami aur barish se rog badhne ka khatra rehta hai."
+            }
+        }
+    },
+    "Vegetables (Sabzi)": {
+        "urea": 90.0,
+        "dap": 60.0,
+        "mop": 45.0,
+        "seed": 1.5,
+        "default_season": "Kharif",
+        "seasons": {
+            "Kharif": {
+                "irrigation_count": "3 se 6 baar (barish aur jal-nikasi ke hisaab se)",
+                "irrigation_interval": "Barish na hone par har 8–14 din ke antral par",
+                "basal_note": "Kharif ropai/buwai (jaise Karela, Parwal, Baingan) ke samay gobar ki khaad + DAP + MOP + 1/3 Urea dein.",
+                "schedule": [
+                    {
+                        "stage": "1st Paani / Nami (Ropai / Ankur Ke 12–18 din baad)",
+                        "interval": "12–18 din par (halka paani)",
+                        "fertilizer": "Lagbhag 1/3 Urea paudhon ki jad se thodi doori par dein."
+                    },
+                    {
+                        "stage": "2nd Paani (Badhvaar / Vegetative Growth — 25–35 din baad)",
+                        "interval": "10–15 din ke antral par",
+                        "fertilizer": "Bacha hua lagbhag 1/3 Urea (baaki hissa baad mein)."
+                    },
+                    {
+                        "stage": "3rd Paani onwards (Phool aur Phal Banne ke Dauraan)",
+                        "interval": "8–14 din ke antral par (barish na ho tab)",
+                        "fertilizer": "Zaroorat padne par NPK (19:19:19) ya Boron/Calcium ka halka spray karein; medh (ridge) par lagayein taaki paani na bhare."
+                    }
+                ],
+                "land_note": "Kharif sabziyon mein medh (ridge) par lagana aur paani ki nikaasi sabse zaroori hai."
+            },
+            "Rabi": {
+                "irrigation_count": "6 se 9 baar (sardi mein niyamit halka paani)",
+                "irrigation_interval": "Har 10–16 din ke antral par",
+                "basal_note": "Rabi sabziyon (jaise Tamatar, Gobhi, Matar, Aloo, Palak) ke samay gobar khaad + DAP + MOP + 1/3 Urea dein.",
+                "schedule": [
+                    {
+                        "stage": "1st Paani (Ropai / Ankur Ke 12–18 din baad)",
+                        "interval": "12–18 din par (halka paani)",
+                        "fertilizer": "Lagbhag 1/3 Urea paudhon ke paas dein."
+                    },
+                    {
+                        "stage": "2nd Paani (Badhvaar — 25–35 din baad)",
+                        "interval": "12–16 din ke antral par",
+                        "fertilizer": "Bacha hua lagbhag 1/3 Urea."
+                    },
+                    {
+                        "stage": "3rd Paani onwards (Phool, Kand/Phal Banne ke Dauraan)",
+                        "interval": "10–16 din ke antral par",
+                        "fertilizer": "Zaroorat padne par 1–2% NPK ya Boron/Potash ka halka upyog karein."
+                    }
+                ],
+                "land_note": "Rabi sabziyon mein subah ya dopahar ke samay halka paani dein aur raat mein zyada paani bharne se bachein."
+            }
+        }
+    }
+}
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     prediction = None
@@ -325,6 +638,19 @@ def index():
         coordinates = request.form.get("coordinates", "")
         npk_summary = f"N:{int(N)}, P:{int(P)}, K:{int(K)}, pH:{ph}"
 
+        validation_error = validate_plot_combination(village, flood_status, soil_type)
+        if validation_error:
+            return render_template(
+                "index.html",
+                prediction=None,
+                village=village,
+                flood_status=flood_status,
+                soil_type=soil_type,
+                coordinates=coordinates,
+                advisory=validation_error,
+                saved_msg=False
+            )
+
         features = [[N, P, K, temperature, humidity, ph, rainfall]]
         prediction = model.predict(features)[0].capitalize()
         advisory = get_local_advisory(flood_status, soil_type, prediction)
@@ -352,6 +678,7 @@ def calculator():
     calc_result = None
     if request.method == "POST":
         crop = request.form.get("crop", "Wheat (Gehu)")
+        season_choice = request.form.get("season", "Rabi")
         try:
             area = max(0.0, float(request.form.get("area", 1)))
         except ValueError:
@@ -359,21 +686,23 @@ def calculator():
         unit = request.form.get("unit", "Bigha")
         acres = area * 0.62 if unit == "Bigha" else (area * 0.031 if unit == "Katha" else area)
 
-        dosage = {
-            "Wheat (Gehu)": {"urea": 110, "dap": 55, "mop": 35, "seed": 45},
-            "Maize (Makka)": {"urea": 130, "dap": 65, "mop": 40, "seed": 8},
-            "Rice (Dhan)": {"urea": 100, "dap": 50, "mop": 35, "seed": 15},
-            "Mustard (Sarson)": {"urea": 65, "dap": 45, "mop": 25, "seed": 2.5},
-            "Vegetables (Sabzi)": {"urea": 90, "dap": 60, "mop": 45, "seed": 1.5}
-        }.get(crop, {"urea": 100, "dap": 50, "mop": 35, "seed": 20})
+        profile = CROP_CALC_PROFILES.get(crop, CROP_CALC_PROFILES["Wheat (Gehu)"])
+        season_key = season_choice if season_choice in profile["seasons"] else profile["default_season"]
+        season_data = profile["seasons"][season_key]
 
         calc_result = {
             "crop": crop,
+            "season": season_key,
             "area_label": f"{area} {unit} (~{acres:.2f} Acre)",
-            "urea": round(dosage["urea"] * acres, 1),
-            "dap": round(dosage["dap"] * acres, 1),
-            "mop": round(dosage["mop"] * acres, 1),
-            "seed": round(dosage["seed"] * acres, 1)
+            "urea": round(profile["urea"] * acres, 1),
+            "dap": round(profile["dap"] * acres, 1),
+            "mop": round(profile["mop"] * acres, 1),
+            "seed": round(profile["seed"] * acres, 1),
+            "irrigation_count": season_data["irrigation_count"],
+            "irrigation_interval": season_data["irrigation_interval"],
+            "basal_note": season_data["basal_note"],
+            "schedule": season_data["schedule"],
+            "land_note": season_data["land_note"]
         }
     return render_template("calculator.html", calc_result=calc_result)
 

@@ -16,14 +16,14 @@
         /* Single-Line Compact Menu (Height Nahi Badhayega) */
         .nav-tabs { display: flex; gap: 5px; overflow-x: auto; background: #e8f5e9; padding: 5px; border-radius: 10px; margin-bottom: 12px; scrollbar-width: thin; }
         .nav-tabs a, .nav-tabs button.tab-btn { flex: 0 0 auto; white-space: nowrap; text-decoration: none; text-align: center; padding: 7px 9px; font-size: 11.5px; font-weight: 700; border-radius: 8px; color: #2e7d32; border: none; background: transparent; cursor: pointer; }
-        .nav-tabs a:hover, .nav-tabs button.tab-btn:hover { background: #c8e6c9; color: #1b5e20; }
+        .nav-tabs a:hover, .nav-tabs button.tab-btn:hover { background: #c8e6c9; color: #1b2e20; }
         .nav-tabs a.active, .nav-tabs button.tab-btn.active { background: #2e7d32; color: #fff; }
 
         .header { text-align: center; border-bottom: 1.5px solid #e8f5e9; padding-bottom: 8px; margin-bottom: 10px; }
         .header h1 { margin: 0; font-size: 19px; color: #1b5e20; }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px; gap: 8px; }
         .section-title { font-size: 12.5px; font-weight: 700; color: #2e7d32; margin: 0; text-transform: uppercase; }
-        .btn-random { padding: 5px 10px; font-size: 11.5px; font-weight: 700; border-radius: 7px; border: 1.5px solid #2e7d32; background: #e8f5e9; color: #1b5e20; cursor: pointer; }
+        .btn-random { padding: 5px 10px; font-size: 11.5px; font-weight: 700; border-radius: 7px; border: 1.5px solid #2e7d32; background: #e8f5e9; color: #1b2e10; cursor: pointer; }
         .btn-random:hover { background: #c8e6c9; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .form-group { margin-bottom: 8px; }
@@ -36,6 +36,7 @@
         .pincode-bar button { padding: 7px 12px; background: #1b5e20; color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
         .save-check { display: flex; align-items: center; gap: 8px; background: #f1f8e9; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: #1b5e20; margin-top: 8px; border: 1px solid #c5e1a5; }
         .save-check input { width: 16px; height: 16px; margin: 0; }
+        .geo-alert { display: none; margin-top: 8px; padding: 9px 11px; border-radius: 8px; background: #fdecea; color: #b71c1c; border: 1px solid #f5c6cb; font-size: 12px; font-weight: 600; line-height: 1.4; }
         .btn { width: 100%; padding: 12px; margin-top: 10px; background: #2e7d32; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
         .map-tools { display: flex; gap: 5px; margin-bottom: 6px; flex-wrap: wrap; }
         .btn-small { padding: 5px 8px; font-size: 11px; font-weight: 600; border: 1px solid #2e7d32; border-radius: 6px; background: #e8f5e9; color: #1b2e10; cursor: pointer; }
@@ -88,6 +89,10 @@
             </div>
             {% if advisory %}<div class="advisory-box"><b>💡 Tip:</b> {{ advisory }}</div>{% endif %}
         </div>
+        {% elif advisory %}
+        <div class="result-card" style="background:#fdecea; border-left-color:#c62828;">
+            <div class="advisory-box" style="color:#b71c1c; border-color:#ef9a9a; margin-top:0;"><b>⚠️ Notice:</b> {{ advisory }}</div>
+        </div>
         {% endif %}
 
         <form method="POST">
@@ -131,7 +136,7 @@
             </div>
 
             <div class="section-title" style="margin-top: 12px; margin-bottom: 6px;">3. Satellite Map (Pincode / GPS / Pin)</div>
-            
+
             <!-- Pincode Search Box -->
             <div class="pincode-bar">
                 <input type="text" id="pincodeInput" maxlength="6" placeholder="📮 Enter 6-digit Pincode (e.g. 853201)" onkeydown="if(event.key==='Enter'){event.preventDefault(); searchByPincode();}">
@@ -150,7 +155,7 @@
 
             <div class="form-group">
                 <label>Village / Mauza</label>
-                <select name="village" id="villageSelect" onchange="handleVillageChange()">
+                <select name="village" id="villageSelect">
                     <option value="Srikhandi (Koshi Belt)">Srikhandi (Koshi Belt)</option>
                     <option value="Jayrampur">Jayrampur</option>
                     <option value="Bihpur">Bihpur</option>
@@ -165,7 +170,7 @@
             </div>
             <div class="form-group" id="customVillageBox" style="display: none;">
                 <label>Enter Custom Village / Plot Name</label>
-                <input type="text" name="custom_village" id="customVillageInput" placeholder="e.g. Plot-1 Bagicha">
+                <input type="text" name="custom_village" id="customVillageInput" placeholder="e.g. Karmanasha Kinare, Sasaram">
             </div>
 
             <div class="grid">
@@ -208,6 +213,8 @@
                 💾 Is prediction ko Khet History mein save karein
             </label>
 
+            <div id="geoValidationAlert" class="geo-alert" role="alert"></div>
+
             <button type="submit" class="btn">Predict Best Crop 🚀</button>
         </form>
     </div>
@@ -227,8 +234,8 @@
             </div>
             <div class="lab-ranges">
                 <b>Allowed Min–Max Ranges:</b><br>
-                • <b>N:</b> 10 – 140 | <b>P:</b> 5 – 100 | <b>K:</b> 5 – 120 | <b>pH:</b> 5.0 – 8.0<br>
-                • <b>Temp:</b> 15.0 – 36.0 °C | <b>Humidity:</b> 35.0 – 90.0 % | <b>Rainfall:</b> 25.0 – 250.0 mm
+                - <b>N:</b> 10 – 140 | <b>P:</b> 5 – 100 | <b>K:</b> 5 – 120 | <b>pH:</b> 5.0 – 8.0<br>
+                - <b>Temp:</b> 15.0 – 36.0 °C | <b>Humidity:</b> 35.0 – 90.0 % | <b>Rainfall:</b> 25.0 – 250.0 mm
             </div>
 
             <div class="table-wrap">
@@ -319,6 +326,13 @@
 
     function fillRandomValues() {
         applySampleToForm(createRandomSample());
+
+        const presetKeys = Object.keys(villageDefaults);
+        if (villageSelectEl && presetKeys.length > 0) {
+            const randomVillage = presetKeys[Math.floor(Math.random() * presetKeys.length)];
+            villageSelectEl.value = randomVillage;
+            handleVillageChange();
+        }
     }
 
     function generateBatchSamples() {
@@ -410,17 +424,190 @@
             () => alert("Location permission allow karein ya map par click karein.")
         );
     }
-    const villageCoords = {
-        "Srikhandi (Koshi Belt)": [25.3880, 86.9850], "Jayrampur": [25.3960, 86.9720],
-        "Bihpur": [25.3985, 86.9765], "Bainadih": [25.3820, 86.9920],
-        "Nagarpara": [25.3680, 86.9620], "Ganga Diara Belt": [25.2550, 86.9820],
-        "Naugachhia": [25.3890, 87.0950], "Kahalgaon": [25.2660, 87.2320], "Bhagalpur Sadar": [25.2425, 86.9842]
-    };
-    function handleVillageChange() {
-        const val = document.getElementById("villageSelect").value;
-        document.getElementById("customVillageBox").style.display = val === "Other" ? "block" : "none";
-        if (villageCoords[val]) jumpToRegion(villageCoords[val][0], villageCoords[val][1], 14, val);
+
+    const geoAlertBox = document.getElementById("geoValidationAlert");
+    const mainPredForm = document.querySelector("#mainTabSection form");
+    const floodSelectEl = document.querySelector("select[name='flood_status']");
+    const soilSelectEl = document.querySelector("select[name='soil_type']");
+    const customVillageInputEl = document.getElementById("customVillageInput");
+    const villageSelectEl = document.getElementById("villageSelect");
+
+    function setSelectByMatch(selectEl, targetValue) {
+        if (!selectEl || !targetValue) return false;
+        const cleanTarget = targetValue.toLowerCase().trim();
+
+        for (let i = 0; i < selectEl.options.length; i++) {
+            const opt = selectEl.options[i];
+            const valClean = opt.value.toLowerCase().trim();
+            const txtClean = opt.text.toLowerCase().trim();
+
+            if (valClean === cleanTarget || txtClean === cleanTarget) {
+                selectEl.selectedIndex = i;
+                selectEl.value = opt.value;
+                return true;
+            }
+        }
+
+        for (let i = 0; i < selectEl.options.length; i++) {
+            const opt = selectEl.options[i];
+            const valClean = opt.value.toLowerCase().trim();
+            const txtClean = opt.text.toLowerCase().trim();
+
+            if (valClean.includes(cleanTarget) || txtClean.includes(cleanTarget)) {
+                selectEl.selectedIndex = i;
+                selectEl.value = opt.value;
+                return true;
+            }
+        }
+
+        return false;
     }
+
+    const villageDefaults = {
+        "Srikhandi (Koshi Belt)": {
+            coords: [25.3880, 86.9850],
+            flood: "Koshi Kinare Diara (Silt-Sandy)",
+            soil: "Gaad (New Alluvial Silt)"
+        },
+        "Jayrampur": {
+            coords: [25.3960, 86.9720],
+            flood: "Non-Flooded Irrigated (Sinchit)",
+            soil: "Purani Domat (Old Alluvial)"
+        },
+        "Bihpur": {
+            coords: [25.3985, 86.9765],
+            flood: "Non-Flooded Irrigated (Sinchit)",
+            soil: "Purani Domat (Old Alluvial)"
+        },
+        "Bainadih": {
+            coords: [25.3820, 86.9920],
+            flood: "Early Water Recession",
+            soil: "Baluahi Domat (Sandy Loam)"
+        },
+        "Nagarpara": {
+            coords: [25.3680, 86.9620],
+            flood: "Mid Water Recession",
+            soil: "Gaad (New Alluvial Silt)"
+        },
+        "Ganga Diara Belt": {
+            coords: [25.2550, 86.9820],
+            flood: "Ganga Kinare Diara (Alluvial)",
+            soil: "Gaad (New Alluvial Silt)"
+        },
+        "Naugachhia": {
+            coords: [25.3890, 87.0950],
+            flood: "Non-Flooded Irrigated (Sinchit)",
+            soil: "Purani Domat (Old Alluvial)"
+        },
+        "Kahalgaon": {
+            coords: [25.2660, 87.2320],
+            flood: "Non-Flooded Upland (Unchahar)",
+            soil: "Lal / Peeli (Red-Yellow)"
+        },
+        "Bhagalpur Sadar": {
+            coords: [25.2425, 86.9842],
+            flood: "Non-Flooded Irrigated (Sinchit)",
+            soil: "Purani Domat (Old Alluvial)"
+        }
+    };
+
+    function applyCustomLocationHints() {
+        const customText = (customVillageInputEl ? customVillageInputEl.value : "").toLowerCase().trim();
+        if (!customText) return;
+
+        if (customText.includes("karmanasha")) {
+            jumpToRegion(25.1850, 83.7350, 12, customVillageInputEl.value.trim());
+            setSelectByMatch(floodSelectEl, "Mid Water Recession");
+            setSelectByMatch(soilSelectEl, "Purani Domat (Old Alluvial)");
+        } else if (customText.includes("sasaram")) {
+            jumpToRegion(24.9537, 84.0149, 13, customVillageInputEl.value.trim());
+            setSelectByMatch(floodSelectEl, "Non-Flooded Irrigated (Sinchit)");
+            setSelectByMatch(soilSelectEl, "Purani Domat (Old Alluvial)");
+        }
+    }
+
+    function handleVillageChange() {
+        const val = villageSelectEl ? villageSelectEl.value : "";
+        const customBox = document.getElementById("customVillageBox");
+        if (customBox) {
+            customBox.style.display = val === "Other" ? "block" : "none";
+        }
+
+        if (val === "Other") {
+            applyCustomLocationHints();
+        } else {
+            const preset = villageDefaults[val];
+            if (preset) {
+                jumpToRegion(preset.coords[0], preset.coords[1], 14, val);
+                setSelectByMatch(floodSelectEl, preset.flood);
+                setSelectByMatch(soilSelectEl, preset.soil);
+            }
+        }
+        validateGeoCombination();
+    }
+
+    // --- SOIL / LAND / KOSHI CONSISTENCY VALIDATION ---
+    function getEffectiveVillageName() {
+        if (!villageSelectEl) return "";
+        if (villageSelectEl.value === "Other") {
+            return (customVillageInputEl ? customVillageInputEl.value : "").trim();
+        }
+        return villageSelectEl.value.trim();
+    }
+
+    function validateGeoCombination() {
+        const villageVal = getEffectiveVillageName().toLowerCase();
+        const floodVal = (floodSelectEl ? floodSelectEl.value : "").toLowerCase();
+        const soilVal = (soilSelectEl ? soilSelectEl.value : "").toLowerCase();
+
+        const isNonFlooded = floodVal.includes("non-flooded");
+        const isGaad = soilVal.includes("gaad") || soilVal.includes("new alluvial silt");
+        const isKoshi = villageVal.includes("koshi") || floodVal.includes("koshi");
+
+        let msg = "";
+        if (isNonFlooded && isGaad) {
+            msg = "⚠️ Galat Combination: 'Gaad (New Alluvial Silt)' baadh/nadi ki mitti hai, isliye ise 'Non-Flooded' land ke saath nahi chuna ja sakta. Kripya Flood Status ya Soil Type badlein.";
+        } else if (isNonFlooded && isKoshi) {
+            msg = "⚠️ Galat Combination: Koshi belt / Srikhandi kshetra mein 'Non-Flooded' land valid nahi hai. Kripya sahi Flood Status chunein.";
+        }
+
+        if (geoAlertBox) {
+            if (msg) {
+                geoAlertBox.textContent = msg;
+                geoAlertBox.style.display = "block";
+                return false;
+            } else {
+                geoAlertBox.textContent = "";
+                geoAlertBox.style.display = "none";
+                return true;
+            }
+        }
+        return true;
+    }
+
+    if (floodSelectEl) floodSelectEl.addEventListener("change", validateGeoCombination);
+    if (soilSelectEl) soilSelectEl.addEventListener("change", validateGeoCombination);
+    if (customVillageInputEl) {
+        customVillageInputEl.addEventListener("input", function () {
+            applyCustomLocationHints();
+            validateGeoCombination();
+        });
+    }
+    if (villageSelectEl) villageSelectEl.addEventListener("change", handleVillageChange);
+
+    if (mainPredForm) {
+        mainPredForm.addEventListener("submit", function (e) {
+            if (!validateGeoCombination()) {
+                e.preventDefault();
+                if (geoAlertBox) {
+                    geoAlertBox.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            }
+        });
+    }
+
+    // Page load par default village ke hisaab se map, land status, aur soil set karein
+    handleVillageChange();
 </script>
 </body>
 </html>
